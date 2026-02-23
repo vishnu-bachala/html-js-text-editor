@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Text Editor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+        }
+
+        .editor-container {
+            width: 100%;
+            max-width: 1000px;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        /* Title Bar */
+        .title-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+        }
+
+        .title-bar .dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .title-bar .dot {
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+        }
+
+        .dot.red { background: #ef4444; }
+        .dot.yellow { background: #eab308; }
+        .dot.green { background: #22c55e; }
+
+        .title-bar .title {
+            font-size: 13px;
+            color: #94a3b8;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        /* Dark Mode Toggle */
+        .dark-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .dark-toggle i {
+            font-size: 14px;
+            color: #94a3b8;
+            transition: color 0.3s ease;
+        }
+
+        .dark-toggle .toggle-track {
+            width: 40px;
+            height: 22px;
+            background: #475569;
+            border-radius: 11px;
+            position: relative;
+            transition: background 0.3s ease;
+        }
+
+        .dark-toggle .toggle-thumb {
+            width: 18px;
+            height: 18px;
+            background: #fff;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s ease, background 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Dark mode active toggle */
+        .dark .dark-toggle .toggle-track {
+            background: #3b82f6;
+        }
+
+        .dark .dark-toggle .toggle-thumb {
+            transform: translateX(18px);
+        }
+
+        .dark .dark-toggle .fa-moon {
+            color: #3b82f6;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px;
+            padding: 10px 16px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .toolbar .separator {
+            width: 1px;
+            height: 24px;
+            background: #cbd5e1;
+            margin: 0 6px;
+        }
+
+        .toolbar button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: #475569;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .toolbar button:hover {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .toolbar button:active {
+            background: #cbd5e1;
+            transform: scale(0.95);
+        }
+
+        .toolbar button.text-btn {
+            width: auto;
+            padding: 0 12px;
+            font-size: 13px;
+            font-weight: 500;
+            gap: 6px;
+        }
+
+        .toolbar select {
+            height: 36px;
+            padding: 0 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #fff;
+            color: #475569;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.15s ease;
+        }
+
+        .toolbar select:hover {
+            border-color: #94a3b8;
+        }
+
+        .toolbar select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .toolbar .color-picker {
+            position: relative;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 1px solid #e2e8f0;
+            transition: border-color 0.15s ease;
+        }
+
+        .toolbar .color-picker:hover {
+            border-color: #94a3b8;
+        }
+
+        .toolbar .color-picker input[type="color"] {
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            width: 46px;
+            height: 46px;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Editor Area */
+        .editor {
+            min-height: 450px;
+            max-height: 60vh;
+            overflow-y: auto;
+            padding: 30px;
+            outline: none;
+            font-size: 16px;
+            line-height: 1.75;
+            color: #1e293b;
+        }
+
+        .editor:empty::before {
+            content: "Start typing your document...";
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        .editor::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .editor::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .editor::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .editor::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            font-size: 12px;
+            color: #64748b;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            font-weight: 500;
+        }
+
+        .status-bar .status-left {
+            display: flex;
+            gap: 20px;
+        }
+
+        .status-bar span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Tooltip */
+        .toolbar button[title],
+        .toolbar .color-picker[title] {
+            position: relative;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            .editor-container {
+                border-radius: 10px;
+            }
+
+            .editor {
+                min-height: 300px;
+                padding: 20px;
+            }
+
+            .toolbar {
+                padding: 8px 10px;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            .title-bar, .toolbar, .status-bar {
+                display: none !important;
+            }
+
+            body {
+                background: none;
+                padding: 0;
+                min-height: auto;
+            }
+
+            .editor-container {
+                box-shadow: none;
+                border-radius: 0;
+                max-width: 100%;
+            }
+
+            .editor {
+                max-height: none;
+                overflow: visible;
+                padding: 0;
+            }
+        }
+
+        /* Dark Mode Styles */
+        body, .editor-container, .toolbar, .toolbar button, .toolbar select,
+        .toolbar .color-picker, .editor, .status-bar {
+            transition: background 0.3s ease, color 0.3s ease,
+                        border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .dark .editor-container {
+            background: #1e293b;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .dark .title-bar {
+            background: #0f172a;
+            border-bottom-color: #1e293b;
+        }
+
+        .dark .toolbar {
+            background: #1e293b;
+            border-bottom-color: #334155;
+        }
+
+        .dark .toolbar .separator {
+            background: #475569;
+        }
+
+        .dark .toolbar button {
+            color: #94a3b8;
+        }
+
+        .dark .toolbar button:hover {
+            background: #334155;
+            color: #e2e8f0;
+        }
+
+        .dark .toolbar button:active {
+            background: #475569;
+        }
+
+        .dark .toolbar select {
+            background: #0f172a;
+            color: #cbd5e1;
+            border-color: #334155;
+        }
+
+        .dark .toolbar select:hover {
+            border-color: #475569;
+        }
+
+        .dark .toolbar select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+
+        .dark .toolbar .color-picker {
+            border-color: #334155;
+        }
+
+        .dark .toolbar .color-picker:hover {
+            border-color: #475569;
+        }
+
+        .dark .editor {
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+
+        .dark .editor:empty::before {
+            color: #475569;
+        }
+
+        .dark .editor::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+
+        .dark .editor::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        .dark .status-bar {
+            background: #0f172a;
+            color: #64748b;
+            border-top-color: #334155;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="editor-container">
+
+    <!-- Title Bar -->
+    <div class="title-bar">
+        <div class="dots">
+            <div class="dot red"></div>
+            <div class="dot yellow"></div>
+            <div class="dot green"></div>
+        </div>
+        <div class="title">Text Editor</div>
+        <div class="dark-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode">
+            <i class="fa-regular fa-sun"></i>
+            <div class="toggle-track">
+                <div class="toggle-thumb"></div>
+            </div>
+            <i class="fa-regular fa-moon"></i>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <button class="text-btn" onclick="newFile()" title="New File">
+            <i class="fa-regular fa-file"></i> New
+        </button>
+        <button class="text-btn" onclick="openFile()" title="Open File">
+            <i class="fa-regular fa-folder-open"></i> Open
+        </button>
+        <button class="text-btn" onclick="saveFile()" title="Save File">
+            <i class="fa-regular fa-floppy-disk"></i> Save
+        </button>
+        <button class="text-btn" onclick="printDoc()" title="Print">
+            <i class="fa-solid fa-print"></i> Print
+        </button>
+
+        <div class="separator"></div>
+
+        <button onclick="execCmd('undo')" title="Undo"><i class="fa-solid fa-rotate-left"></i></button>
+        <button onclick="execCmd('redo')" title="Redo"><i class="fa-solid fa-rotate-right"></i></button>
+
+        <div class="separator"></div>
+
+        <button onclick="execCmd('bold')" title="Bold"><i class="fa-solid fa-bold"></i></button>
+        <button onclick="execCmd('italic')" title="Italic"><i class="fa-solid fa-italic"></i></button>
+        <button onclick="execCmd('underline')" title="Underline"><i class="fa-solid fa-underline"></i></button>
+        <button onclick="execCmd('strikeThrough')" title="Strikethrough"><i class="fa-solid fa-strikethrough"></i></button>
+
+        <div class="separator"></div>
+
+        <select onchange="execCmd('fontName', this.value)" title="Font Family">
+            <option value="Inter">Inter</option>
+            <option value="Arial">Arial</option>
+            <option value="Georgia">Georgia</option>
+            <option value="Times New Roman">Times New Roman</option>
+            <option value="Courier New">Courier New</option>
+            <option value="Verdana">Verdana</option>
+        </select>
+
+        <select onchange="execCmd('fontSize', this.value)" title="Font Size">
+            <option value="1">10</option>
+            <option value="2">12</option>
+            <option value="3" selected>14</option>
+            <option value="4">16</option>
+            <option value="5">18</option>
+            <option value="6">24</option>
+            <option value="7">32</option>
+        </select>
+
+        <div class="separator"></div>
+
+        <div class="color-picker" title="Text Color">
+            <input type="color" value="#1e293b" onchange="execCmd('foreColor', this.value)">
+        </div>
+        <div class="color-picker" title="Highlight Color">
+            <input type="color" value="#fef08a" onchange="execCmd('hiliteColor', this.value)">
+        </div>
+
+        <div class="separator"></div>
+
+        <button onclick="execCmd('justifyLeft')" title="Align Left"><i class="fa-solid fa-align-left"></i></button>
+        <button onclick="execCmd('justifyCenter')" title="Align Center"><i class="fa-solid fa-align-center"></i></button>
+        <button onclick="execCmd('justifyRight')" title="Align Right"><i class="fa-solid fa-align-right"></i></button>
+        <button onclick="execCmd('justifyFull')" title="Justify"><i class="fa-solid fa-align-justify"></i></button>
+
+        <div class="separator"></div>
+
+        <button onclick="execCmd('insertUnorderedList')" title="Bullet List"><i class="fa-solid fa-list-ul"></i></button>
+        <button onclick="execCmd('insertOrderedList')" title="Numbered List"><i class="fa-solid fa-list-ol"></i></button>
+    </div>
+
+    <!-- Editor Area -->
+    <div id="editor" class="editor" contenteditable="true" onkeyup="updateCounts()"></div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="status-left">
+            <span><i class="fa-regular fa-file-lines"></i> Words: <strong id="wordCount">0</strong></span>
+            <span><i class="fa-solid fa-text-width"></i> Characters: <strong id="charCount">0</strong></span>
+        </div>
+        <span>HTML Document</span>
+    </div>
+
+</div>
+
+<script>
+    const editor = document.getElementById("editor");
+    const wordCountDisplay = document.getElementById("wordCount");
+    const charCountDisplay = document.getElementById("charCount");
+
+    function execCmd(command, value = null) {
+        document.execCommand(command, false, value);
+        editor.focus();
+    }
+
+    function newFile() {
+        if (confirm("Create a new document? Unsaved changes will be lost.")) {
+            editor.innerHTML = "";
+            updateCounts();
+        }
+    }
+
+    function saveFile() {
+        const text = editor.innerHTML;
+        const blob = new Blob([text], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "document.html";
+        a.click();
+
+        URL.revokeObjectURL(url);
+    }
+
+    function openFile() {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".html,.txt";
+
+        input.onchange = function () {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function () {
+                editor.innerHTML = reader.result;
+                updateCounts();
+            };
+            reader.readAsText(file);
+        };
+
+        input.click();
+    }
+
+    function updateCounts() {
+        const text = editor.innerText.trim();
+        const words = text ? text.split(/\s+/).length : 0;
+        const chars = editor.innerText.length;
+        wordCountDisplay.innerText = words;
+        charCountDisplay.innerText = chars;
+    }
+
+    function printDoc() {
+        window.print();
+    }
+
+    // Dark Mode
+    function toggleDarkMode() {
+        document.body.classList.toggle("dark");
+        const isDark = document.body.classList.contains("dark");
+        localStorage.setItem("darkMode", isDark);
+    }
+
+    // Restore saved preference on load
+    if (localStorage.getItem("darkMode") === "true") {
+        document.body.classList.add("dark");
+    }
+</script>
+
+</body>
+</html>
